@@ -1,0 +1,593 @@
+    1                  		.data   
+    2 10010000 3e6f6f3c	al1:	.word	0x3e6f6f3c
+    3 10010004 5d20205b		.word	0x5d20205b
+    4 10010008 305f5f30		.word	0x305f5f30
+    5 1001000c 3e4f4f3c	al12:	.word	0x3e4f4f3c
+    6 10010010 5d20205b		.word	0x5d20205b
+    7 10010014 20303020		.word	0x20303020
+    8 10010018 db2020db	al2:	.word	0xdb2020db
+    9 1001001c 20dbdb20		.word	0x20dbdb20
+   10 10010020 db2020db		.word	0xdb2020db
+   11 10010024 20202020	al22:	.word	0x20202020
+   12 10010028 20dbdb20		.word	0x20dbdb20
+   13 1001002c 20202020		.word	0x20202020
+   14 10010030 20db1edb	ship:	.word	0x20db1edb
+   15 10010034 dddddddd	boss:	.word	0xdddddddd
+   16 10010038 b0b1b2db	bar1:	.byte	0xdb,0xb2,0xb1,0xb0
+   17 1001003c 04	barm:	.byte	4:16
+   18 1001004c         	buff:	.space 	25*81       	# A 256 bytes buff  
+   19 10010835 01	bitm:	.byte 	1:44
+   20 10010861 a7	bu:	.byte	0xa7
+   21 10010862 40	bom:	.byte	0x40
+   22                   #begin keyboard struct
+   23 a0000010         	keyboard:	.struct 0xa0000000	#start from hardware base address
+   24 a0000000         	flags:		.byte 0
+   25 a0000001         	mask:		.byte 0
+   26 a0000002         			.half 0
+   27 a0000004         	keypress: 	.byte 0,0,0
+   28 a0000007         	presscon: 	.byte 0
+   29 a0000008         	keydown:	.half 0
+   30 a000000a         	shiftdown:	.byte 0
+   31 a000000b         	downcon:	.byte 0
+   32 a000000c         	keyup:		.half 0
+   33 a000000e         	upshift:	.byte 0
+   34 a000000f         	upcon:		.byte 0
+   35                  			.data
+   36                   #end keyboard struct 
+   37                   #begin timer struct
+   38          00000006	timer.int = 6
+   39 a0000070         	timer:	.struct 0xa0000050
+   40 a0000050         	flags:	.byte	0
+   41 a0000051         	mask:	.byte	0
+   42 a0000052         		.half	0
+   43 a0000054         	t1:	.word	0
+   44 a0000058         	t2:	.word	0
+   45 a000005c         	t3:	.word	0
+   46 a0000060         	t4:	.word	0
+   47 a0000064         	t5:	.word	0
+   48 a0000068         	t6:	.word	0
+   49 a000006c         	t7:	.word	0
+   50                  		.code  
+   51                   #end timer struct
+   52                   #begin main
+   53                   main:  
+   54                   #begin timers
+   55                   #alien timer
+   56                  		la	$a0,timer.t1		# hardware address of timer1
+   56 00400000 3c04a000		lui	$a0,0xA000
+   56 00400004 34840054		ori	$a0,$a0,0x54
+   57 00400008 20050004		addi	$a1,$0,4		# 4 byte data
+   58 0040000c 200602bc		addi	$a2,$0,700		# timer interval every five seconds
+   59 00400010 0000068c		syscall	$IO_write
+   60                   #mothership timer
+   61                  		la	$a0,timer.t2		# hardware address of timer1
+   61 00400014 3c04a000		lui	$a0,0xA000
+   61 00400018 34840058		ori	$a0,$a0,0x58
+   62 0040001c 20050004		addi	$a1,$0,4		# 4 byte data
+   63 00400020 20060064		addi	$a2,$0,100		# timer interval every five seconds
+   64 00400024 0000068c		syscall	$IO_write
+   65                  		la	$a0,timer.t5		# hardware address of timer1
+   65 00400028 3c04a000		lui	$a0,0xA000
+   65 0040002c 34840064		ori	$a0,$a0,0x64
+   66 00400030 20050004		addi	$a1,$0,4		# 4 byte data
+   67 00400034 20067530		addi	$a2,$0,30000		# timer interval every five seconds
+   68 00400038 0000068c		syscall	$IO_write
+   69                   #bullet timer
+   70                  		la	$a0,timer.t3		# hardware address of timer1
+   70 0040003c 3c04a000		lui	$a0,0xA000
+   70 00400040 3484005c		ori	$a0,$a0,0x5C
+   71 00400044 20050004		addi	$a1,$0,4		# 4 byte data
+   72 00400048 200601f4		addi	$a2,$0,500 		# timer interval every five seconds
+   73 0040004c 0000068c		syscall	$IO_write
+   74                   #bomb timer
+   75                  		la	$a0,timer.t4		# hardware address of timer1
+   75 00400050 3c04a000		lui	$a0,0xA000
+   75 00400054 34840060		ori	$a0,$a0,0x60
+   76 00400058 20050004		addi	$a1,$0,4		# 4 byte data
+   77 0040005c 200601f4		addi	$a2,$0,500		# timer interval every five seconds
+   78 00400060 0000068c		syscall	$IO_write
+   79                   #end timers
+   80                   #begin variables 
+   81 00400064 20120001		addi	$s2,$0,1		#Alien movement tracker
+   82                  		li	$s6,25			#number of rows down
+   82 00400068 34160019		ori	$s6,$0,0x19
+   83                  		li	$s5,40			#ship position
+   83 0040006c 34150028		ori	$s5,$0,0x28
+   84 00400070 2014ffff		addi	$s4,$0,-1		#bullet pos
+   85 00400074 00009820		add	$s3,$0,$0		#mother ship pos
+   86                   #end variables
+   87 00400078 0c100119		jal	render
+   88                   #move aliens 25 lines	
+   89                  	1:	li	$s7,26			#spaces for aliens to move:
+   89 0040007c 3417001a		ori	$s7,$0,0x1A
+   90 00400080 32cd0001		andi 	$t5,$s6,1		#odd or even line
+   91 00400084 15a00001		bnez	$t5,2f			#
+   92 00400088 200dffff		addi	$t5,$0,-1		#start subtracting if odd	
+   93                   #reload flags
+   94                  	2:	la	$a0,timer.flags		#get flags
+   94 0040008c 3c04a000		lui	$a0,0xA000
+   94 00400090 34840050		ori	$a0,$a0,0x50
+   95 00400094 0000064c		syscall	$IO_read
+   96 00400098 0040c021		mov	$t8,$v0
+   97                   #move alien				
+   98 0040009c 33080002		andi	$t0,$t8,0x02		#move aliens every .7 seconds
+   99 004000a0 11000006		beqz	$t0,3f
+  100                  		la	$a0,timer.t1		#load timer t1
+  100 004000a4 3c04a000		lui	$a0,0xA000
+  100 004000a8 34840054		ori	$a0,$a0,0x54
+  101 004000ac 0000064c		syscall	$IO_read		#clear flag
+  102 004000b0 024d9020		add	$s2,$s2,$t5		#if true incrment by 1 or -1
+  103 004000b4 22f7ffff		addi	$s7,$s7,-1		#spaces for aliens --
+  104 004000b8 0c100119		jal	render			#print screen
+  105                   #move mothership	
+  106 004000bc 33080004	3:	andi	$t0,$t8,0x04		#move ship every .5 seconds
+  107 004000c0 11000010		beqz	$t0,4f			
+  108                  		la	$a0,timer.t2		#load timer t2 
+  108 004000c4 3c04a000		lui	$a0,0xA000
+  108 004000c8 34840058		ori	$a0,$a0,0x58
+  109 004000cc 0000064c		syscall	$IO_read		#clear flag
+  110 004000d0 20090019		addi	$t1,$0,25		#if aliens are still on top line branch down
+  111 004000d4 200a004c		addi	$t2,$0,76		#if ship is at right of screen
+  112 004000d8 1136000a		beq	$t1,$s6,4f		
+  113                  		blt	$s3,$t2,31f		#skip to next timer to restart ship
+  113 004000dc 026a082a		slt	$at,$s3,$t2
+  113 004000e0 14200006		bne	$at,$0,31f
+  114 004000e4 33080020		andi	$t0,$t8,0x20		#wait until new ship timer expires to reset 
+  115 004000e8 11000006		beqz	$t0,4f			#mother ship
+  116                  		la	$a0,timer.t5		#
+  116 004000ec 3c04a000		lui	$a0,0xA000
+  116 004000f0 34840064		ori	$a0,$a0,0x64
+  117 004000f4 0000064c		syscall	$IO_read		#load and clear flags
+  118                  		li	$s3,0			#set back to -1
+  118 004000f8 34130000		ori	$s3,$0,0x00
+  119                   	
+  120 004000fc 22730001	31:	addi	$s3,$s3,1		#else add 1
+  121 00400100 0c100119		jal	render			#render screen
+  122                   #move bullet
+  123 00400104 33080008	4:	andi	$t0,$t8,0x08		#every .2 seconds move bullet
+  124 00400108 11000008		beqz	$t0,5f
+  125                  		la	$a0,timer.t3		#load timer
+  125 0040010c 3c04a000		lui	$a0,0xA000
+  125 00400110 3484005c		ori	$a0,$a0,0x5C
+  126 00400114 0000064c		syscall	$IO_read		#clear timer
+  127 00400118 1e800003		bgtz	$s4,41f			#when ready 
+  128 0040011c 12800003		beqz	$s4,5f
+  129                  		li	$s4,0
+  129 00400120 34140000		ori	$s4,$0,0x00
+  130 00400124 0810004b		j	5f
+  131                   	
+  132 00400128 2294ffaf	41:	addi	$s4,$s4,-81		#decrment bullet
+  133                   #move bomb
+  134 0040012c 33080010	5:	andi	$t0,$t8,0x10
+  135 00400130 11000004		beqz	$t0,6f
+  136                  		la	$a0,timer.t4
+  136 00400134 3c04a000		lui	$a0,0xA000
+  136 00400138 34840060		ori	$a0,$a0,0x60
+  137 0040013c 0000064c		syscall	$IO_read
+  138 00400140 0c10009f		jal 	bomb
+  139                   #move ship/fire
+  140                  	6:	la	$a0,keyboard.flags	# hardware address of keyboard flags
+  140 00400144 3c04a000		lui	$a0,0xA000
+  140 00400148 34840000		ori	$a0,$a0,0x00
+  141 0040014c 20050001		addi	$a1,$0,1		# 1 byte of data
+  142 00400150 0000064c		syscall 	$IO_read		# read flags
+  143 00400154 30480002		andi	$t0,$v0,0b10		
+  144 00400158 11000005		beqz	$t0,7f			
+  145 0040015c 20840008		addi	$a0,$a0,8		
+  146 00400160 20050002		addi	$a1,$0,2		# 2 bytes of data
+  147 00400164 0000064c		syscall	$IO_read
+  148 00400168 00402021		mov	$a0,$v0
+  149 0040016c 0c100061		jal	input
+  150 00400170 1ee0ffc6	7:	bgtz	$s7,2b			#branch to 2 while aliens are traversing line
+  151 00400174 22d6ffff		addi	$s6,$s6,-1		#once line traversed linecounter--
+  152 00400178 22520051		addi	$s2,$s2,81		#add 81 chars for movement offset
+  153 0040017c 1ec0ffbf		bgtz	$s6,1b			#branch back to 1
+  154 00400180 0000028c		syscall	$exit
+  155                   #end main
+  156                   #begin ship
+  157                   #moveship/makebullet
+  158 00400184 23bdfffc	input:	addi	$sp,$sp,-4
+  159 00400188 afbf0000		sw	$ra,0($sp)
+  160 0040018c 20080025		addi	$t0,$0,37		#detect left arrow
+  161 00400190 14880004		bne	$a0,$t0,1f		
+  162 00400194 20080001		addi	$t0,$0,1
+  163 00400198 1115000d		beq	$t0,$s5,4f
+  164 0040019c 22b5ffff		addi	$s5,$s5,-1		#sub 1 if detected
+  165 004001a0 08100073		j	3f
+  166 004001a4 20080027	1:	addi	$t0,$0,39		#dectect right arrow
+  167 004001a8 14880004		bne	$a0,$t0,2f
+  168 004001ac 2008004c		addi	$t0,$0,76
+  169 004001b0 11150007		beq	$t0,$s5,4f
+  170 004001b4 22b50001		addi	$s5,$s5,1		#add 1 if detected 
+  171 004001b8 08100073		j	3f
+  172 004001bc 20080020	2:	addi	$t0,$0,32		#detect space
+  173 004001c0 14880003		bne	$a0,$t0,4f
+  174 004001c4 1e800002		bgtz	$s4,4f
+  175 004001c8 22b40748		addi	$s4,$s5,1864			#start bullet counter if detected
+  176 004001cc 0c100119	3:	jal	render
+  177 004001d0 8fbf0000	4:	lw	$ra,0($sp)
+  178 004001d4 23bdfffc		addi	$sp,$sp,-4
+  179 004001d8 03e00008		jr	$ra
+  180                   placeShip:
+  181 004001dc 23bdffec		addi	$sp,$sp,-20
+  182 004001e0 afab0010		sw	$t3,16($sp)
+  183 004001e4 afac000c		sw	$t4,12($sp)
+  184 004001e8 afa90008		sw	$t1,8($sp)
+  185 004001ec afaa0004		sw	$t2,4($sp)
+  186 004001f0 afbf0000		sw	$ra,0($sp)
+  187                  		la 	$t4,ship		#get add of ship
+  187 004001f4 3c0c1001		lui	$t4,0x1001
+  187 004001f8 358c0030		ori	$t4,$t4,0x30
+  188 004001fc 8d890000		lw	$t1,($t4)		#load ship
+  189                  		la	$t2,buff		#get buff
+  189 00400200 3c0a1001		lui	$t2,0x1001
+  189 00400204 354a004c		ori	$t2,$t2,0x4C
+  190 00400208 22ab0798		addi	$t3,$s5,1944		#find pos via t3
+  191 0040020c 014b5020		add	$t2,$t2,$t3		#increment buff to correct pos 
+  192                  		usw	$t1,($t2)		#add ship to buff at pos
+  192 00400210 a9490003		swl	$t1,+3($t2)
+  192 00400214 b9490000		swr	$t1,($t2)
+  193 00400218 8fbf0000		lw	$ra,0($sp)
+  194 0040021c 8faa0004		lw	$t2,4($sp)
+  195 00400220 8fa90008		lw	$t1,8($sp)
+  196 00400224 8fac000c		lw	$t4,12($sp)
+  197 00400228 8fab0010		lw	$t3,16($sp)	
+  198 0040022c 23bd0014		addi	$sp,$sp,20
+  199 00400230 03e00008		jr	$ra
+  200                   #end
+  201                   #begin bullet
+  202                   placeBullet:
+  203 00400234 23bdfff0		addi	$sp,$sp,-16
+  204 00400238 afab000c		sw	$t3,12($sp)
+  205 0040023c afa90008		sw	$t1,8($sp)
+  206 00400240 afaa0004		sw	$t2,4($sp)
+  207 00400244 afbf0000		sw	$ra,0($sp)
+  208                  		la 	$t3,bu			#load bullet
+  208 00400248 3c0b1001		lui	$t3,0x1001
+  208 0040024c 356b0861		ori	$t3,$t3,0x861
+  209                  		la	$t2,buff		#load buff
+  209 00400250 3c0a1001		lui	$t2,0x1001
+  209 00400254 354a004c		ori	$t2,$t2,0x4C
+  210 00400258 81690000		lb	$t1,($t3)		
+  211 0040025c 01545020		add	$t2,$t2,$s4		#increment buff to bullet location 
+  212 00400260 a1490000		sb	$t1,($t2)		#place bullet
+  213 00400264 8fbf0000		lw	$ra,0($sp)
+  214 00400268 8faa0004		lw	$t2,4($sp)
+  215 0040026c 8fa90008		lw	$t1,8($sp)
+  216 00400270 8fab000c		lw	$t3,12($sp)
+  217 00400274 23bd0010		addi	$sp,$sp,16
+  218 00400278 03e00008		jr	$ra
+  219                   #end
+  220                   #begin bomb
+  221 0040027c 23bdfff4	bomb:	addi	$sp,$sp,-12
+  222 00400280 afab0008		sw	$t3,8($sp)
+  223 00400284 afa90004		sw	$t1,4($sp)
+  224 00400288 afbf0000		sw	$ra,0($sp)
+  225                  		li	$t3,2025
+  225 0040028c 340b07e9		ori	$t3,$0,0x7E9
+  226                  		blt	$s1,$t3,1f
+  226 00400290 022b082a		slt	$at,$s1,$t3
+  226 00400294 14200002		bne	$at,$0,1f
+  227                  		li	$s1,0
+  227 00400298 34110000		ori	$s1,$0,0x00
+  228 0040029c 0c1000ad		jal	3f	
+  229 004002a0 1e200003	1:	bgtz	$s1,2f 
+  230 004002a4 225104bf		addi	$s1,$s2,1215
+  231 004002a8 02358820		add	$s1,$s1,$s5
+  232 004002ac 081000ad		j	3f
+  233 004002b0 22310051	2:	addi	$s1,$s1,81
+  234 004002b4 8fbf0000	3:	lw	$ra,0($sp)
+  235 004002b8 8fa90004		lw	$t1,4($sp)
+  236 004002bc 8fab0008		lw	$t3,8($sp)
+  237 004002c0 23bd000c		addi	$sp,$sp,12
+  238 004002c4 03e00008		jr	$ra
+  239                   placeBomb:
+  240 004002c8 23bdfff0		addi	$sp,$sp,-16
+  241 004002cc afab000c		sw	$t3,12($sp)
+  242 004002d0 afa90008		sw	$t1,8($sp)
+  243 004002d4 afaa0004		sw	$t2,4($sp)
+  244 004002d8 afbf0000		sw	$ra,0($sp)
+  245                  		la	$t4,bom
+  245 004002dc 3c0c1001		lui	$t4,0x1001
+  245 004002e0 358c0862		ori	$t4,$t4,0x862
+  246                  		la	$t2,buff
+  246 004002e4 3c0a1001		lui	$t2,0x1001
+  246 004002e8 354a004c		ori	$t2,$t2,0x4C
+  247 004002ec 81890000		lb	$t1,($t4)
+  248 004002f0 01515020		add	$t2,$t2,$s1
+  249 004002f4 a1490000		sb	$t1,($t2)
+  250 004002f8 8fbf0000		lw	$ra,0($sp)
+  251 004002fc 8faa0004		lw	$t2,4($sp)
+  252 00400300 8fa90008		lw	$t1,8($sp)
+  253 00400304 8fab000c		lw	$t3,12($sp)
+  254 00400308 23bd0010		addi	$sp,$sp,16
+  255 0040030c 03e00008	2:	jr	$ra
+  256                   #end bomb
+  257                   #begin mShip
+  258                   mShip: 	
+  259 00400310 23bdfff0		addi	$sp,$sp,-16
+  260 00400314 afa8000c		sw	$t0,12($sp)
+  261 00400318 afa90008		sw	$t1,8($sp)
+  262 0040031c afaa0004		sw	$t2,4($sp)
+  263 00400320 afbf0000		sw	$ra,0($sp)
+  264                  		la 	$t3,boss		#load mother ship
+  264 00400324 3c0b1001		lui	$t3,0x1001
+  264 00400328 356b0034		ori	$t3,$t3,0x34
+  265 0040032c 8d690000		lw	$t1,($t3)			
+  266                  		la	$t2,buff		#load buff
+  266 00400330 3c0a1001		lui	$t2,0x1001
+  266 00400334 354a004c		ori	$t2,$t2,0x4C
+  267 00400338 01535020		add	$t2,$t2,$s3		#increment buff to mother ship location
+  268                  		usw	$t1,($t2)		#place mothership at location
+  268 0040033c a9490003		swl	$t1,+3($t2)
+  268 00400340 b9490000		swr	$t1,($t2)
+  269 00400344 8fbf0000		lw	$ra,0($sp)
+  270 00400348 8faa0004		lw	$t2,4($sp)
+  271 0040034c 8fa90008		lw	$t1,8($sp)
+  272 00400350 8fa8000c		lw	$t0,12($sp)
+  273 00400354 23bd0010		addi	$sp,$sp,16
+  274 00400358 03e00008		jr	$ra
+  275                   #end
+  276                   #begin barriers
+  277                   barrier:
+  278 0040035c 23bdffdc		addi	$sp,$sp,-36
+  279 00400360 afb80020		sw	$t8,32($sp)
+  280 00400364 afa9001c		sw	$t1,28($sp)
+  281 00400368 afaa0018		sw	$t2,24($sp)
+  282 0040036c afab0014		sw	$t3,20($sp)
+  283 00400370 afac0010		sw	$t4,16($sp)
+  284 00400374 afad000c		sw	$t5,12($sp)
+  285 00400378 afae0008		sw	$t6,8($sp)
+  286 0040037c afaf0004		sw	$t7,4($sp)
+  287 00400380 afbf0000		sw	$ra,0($sp)
+  288                  		la	$a0,buff	
+  288 00400384 3c041001		lui	$a0,0x1001
+  288 00400388 3484004c		ori	$a0,$a0,0x4C
+  289                  		la	$t1,bar1
+  289 0040038c 3c091001		lui	$t1,0x1001
+  289 00400390 35290038		ori	$t1,$t1,0x38
+  290                  		la	$t2,barm
+  290 00400394 3c0a1001		lui	$t2,0x1001
+  290 00400398 354a003c		ori	$t2,$t2,0x3C
+  291 0040039c 20840753		addi	$a0,$a0,1875
+  292 004003a0 200f0004		addi	$t7,$0,4	#barrier counter
+  293 004003a4 200e0004	1:	addi	$t6,$0,4	#barrier block counter	
+  294 004003a8 814b0000	2:	lb	$t3,($t2)
+  295 004003ac 80980000		lb	$t8,($a0)
+  296                  		li	$a1,0x20
+  296 004003b0 34050020		ori	$a1,$0,0x20
+  297 004003b4 13050004		beq	$t8,$a1,8f
+  298 004003b8 11600018		beqz	$t3,7f
+  299 004003bc 216bffff		addi	$t3,$t3,-1
+  300 004003c0 0000a020		add	$s4,$0,$0
+  301 004003c4 a14b0000		sb	$t3,($t2)
+  302                   	
+  303 004003c8 316c0004	8:	andi	$t4,$t3,4
+  304 004003cc 1d800007		bgtz	$t4,3f		#if equal 4 print solid block
+  305 004003d0 316c0003		andi	$t4,$t3,3
+  306 004003d4 1d800008		bgtz	$t4,4f		#if equal 3 
+  307 004003d8 316c0002		andi	$t4,$t3,2
+  308 004003dc 1d800009		bgtz	$t4,5f		#if equal 2
+  309 004003e0 316c0001		andi	$t4,$t3,1	
+  310 004003e4 1d80000a		bgtz	$t4,6f		#if equal 1
+  311 004003e8 08100107		j	7f		#else do nothing and go to 7
+  312                   		
+  313 004003ec 812d0000	3:	lb	$t5,($t1)	#load soid block
+  314 004003f0 a08d0000		sb	$t5,($a0)
+  315 004003f4 08100107		j	7f
+  316                   	
+  317 004003f8 812d0001	4:	lb	$t5,1($t1)	#load degraded1 block
+  318 004003fc a08d0000		sb	$t5,($a0)
+  319 00400400 08100107		j	7f
+  320                   	
+  321 00400404 812d0002	5:	lb	$t5,2($t1)	#load degraded2 block
+  322 00400408 a08d0000		sb	$t5,($a0)
+  323 0040040c 08100107		j	7f
+  324                   	
+  325 00400410 812d0003	6:	lb	$t5,3($t1)	#load degraded3 block
+  326 00400414 a08d0000		sb	$t5,($a0)
+  327 00400418 08100107		j	7f
+  328                   	
+  329 0040041c 21ceffff	7:	addi	$t6,$t6,-1	#decrement block counter
+  330 00400420 20840001		addi	$a0,$a0,1	#incrment buffer pointer
+  331 00400424 214a0001		addi	$t2,$t2,1	#incrment bitmap
+  332 00400428 1dc0ffdf		bgtz	$t6,2b		#while four block barrier not complete
+  333 0040042c 21efffff		addi	$t7,$t7,-1	#once complete decrment number of barriers
+  334 00400430 2084000f		addi	$a0,$a0,15	#add 15 to pointer for spacing 
+  335 00400434 1de0ffdb		bgtz	$t7,1b		#branch back to 1 and add new barrier
+  336 00400438 8fb80020		lw	$t8,32($sp)
+  337 0040043c 8fa9001c		lw	$t1,28($sp)
+  338 00400440 8faa0018		lw	$t2,24($sp)
+  339 00400444 8fab0014		lw	$t3,20($sp)
+  340 00400448 8fac0010		lw	$t4,16($sp)
+  341 0040044c 8fad000c		lw	$t5,12($sp)
+  342 00400450 8fae0008		lw	$t6,8($sp)
+  343 00400454 8faf0004		lw	$t7,4($sp)
+  344 00400458 8fbf0000		lw	$ra,0($sp)
+  345 0040045c 23bd0024		addi	$sp,$sp,36
+  346 00400460 03e00008		jr	$ra
+  347                   #end barriers
+  348                   		
+  349                   render:
+  350 00400464 23bdfff4		addi	$sp,$sp,-12
+  351 00400468 afa80008		sw	$t0,8($sp)
+  352 0040046c afbf0004		sw	$ra,4($sp)
+  353 00400470 afa40000		sw	$a0,($sp)
+  354 00400474 0c100182		jal	clearbuff
+  355 00400478 1aa00001		blez	$s5,1f		#if less than zero dont place bullet
+  356 0040047c 0c10008d		jal	placeBullet	#else place bullet 
+  357 00400480 200907e9	1:	addi	$t1,$0,2025
+  358                  		bgt 	$s1,$t1,3f
+  358 00400484 0131082a		slt	$at,$t1,$s1
+  358 00400488 14200009		bne	$at,$0,3f
+  359 0040048c 0c1000b2		jal 	placeBomb	#drop bomb
+  360 00400490 0c100077		jal	placeShip	#place ship
+  361 00400494 2009004b		addi	$t1,$0,75	#if s3 is greater than 77 or eq zero
+  362                  		bgt	$s3,$t1,2f	#	skip to next
+  362 00400498 0133082a		slt	$at,$t1,$s3
+  362 0040049c 14200002		bne	$at,$0,2f
+  363 004004a0 12600001		beqz	$s3,2f		#
+  364 004004a4 0c1000c4		jal	mShip		#else place ship
+  365 004004a8 0c100137	2:	jal	movAi		#place aleins
+  366 004004ac 0c1000d7		jal	barrier		
+  367                   	
+  368 004004b0 00002020	3:	add	$a0,$0,$0	
+  369 004004b4 00002820		add	$a1,$0,$0
+  370 004004b8 0000050c		syscall	$xy		#mover curser to a0,a1
+  371                  		la	$a0,buff	#get a0 ready for printing
+  371 004004bc 3c041001		lui	$a0,0x1001
+  371 004004c0 3484004c		ori	$a0,$a0,0x4C
+  372 004004c4 0000010c		syscall	$print_string	#cout a0
+  373 004004c8 8fa40000		lw	$a0,($sp)
+  374 004004cc 8fbf0004		lw	$ra,4($sp)
+  375 004004d0 8fa80008		lw	$t0,8($sp)
+  376 004004d4 23bd000c		addi	$sp,$sp,12
+  377 004004d8 03e00008		jr	$ra
+  378                   #begin Move Alien	
+  379                   #takes s2:alien tracker
+  380                   #local	t9:even/odd
+  381 004004dc 23bdfffc	movAi:	addi	$sp,$sp,-4		
+  382 004004e0 afbf0000		sw	$ra,0($sp)		
+  383                  	1:	la	$a0,buff		#load buff
+  383 004004e4 3c041001		lui	$a0,0x1001
+  383 004004e8 3484004c		ori	$a0,$a0,0x4C
+  384 004004ec 00922020		add	$a0,$a0,$s2		#incrment buff by s2
+  385 004004f0 32590001		andi	$t9,$s2,1		#find out if on an odd space
+  386 004004f4 0c100141		jal	renai			#renai screen
+  387 004004f8 8fbf0000		lw	$ra,0($sp)	
+  388 004004fc 23bd0004		addi	$sp,$sp,4
+  389 00400500 03e00008		jr	$ra
+  390                   #end
+  391                   #begin render aliens
+  392                   	#renai screen
+  393                   	#takes buff pointer:a0, alien:t6
+  394                   	#local t0:numRows t1:twofows for diffrent alien
+  395 00400504 23bdfff8	renai:	addi	$sp,$sp,-8
+  396 00400508 afb80004		sw	$t8,4($sp)
+  397 0040050c afbf0000		sw	$ra,0($sp)
+  398                  		li	$t0,4		#row counter
+  398 00400510 34080004		ori	$t0,$0,0x04
+  399                  		li	$t1,2		#counter for first 2 rows of aliens 
+  399 00400514 34090002		ori	$t1,$0,0x02
+  400                  		la	$t2,bitm	#do
+  400 00400518 3c0a1001		lui	$t2,0x1001
+  400 0040051c 354a0835		ori	$t2,$t2,0x835
+  401                  	row:	la	$t6,al1		#{alien 1 to t6
+  401 00400520 3c0e1001		lui	$t6,0x1001
+  401 00400524 35ce0000		ori	$t6,$t6,0x00
+  402 00400528 17200002		bnez	$t9,col		#if even go to col
+  403                  		la	$t6,al12	#if odd change alien 1-2
+  403 0040052c 3c0e1001		lui	$t6,0x1001
+  403 00400530 35ce000c		ori	$t6,$t6,0x0C
+  404                  	col:	li	$t3,11			#start dowhile counter
+  404 00400534 340b000b		ori	$t3,$0,0x0B
+  405 00400538 814c0000	1:	lb	$t4,($t2)		#load dead/alive status
+  406 0040053c 11800014		beqz	$t4,2f			#{place alien
+  407                   #alien killed
+  408                  		li	$a1,0x20202020	
+  408 00400540 3c052020		lui	$a1,0x2020
+  408 00400544 34a52020		ori	$a1,$a1,0x2020
+  409                  		ulw 	$t7,0($a0)
+  409 00400548 888f0003		lwl	$t7,0+3($a0)
+  409 0040054c 988f0000		lwr	$t7,0($a0)
+  410 00400550 14af0021		bne	$a1,$t7,4f
+  411                  		ulw 	$t7,81($a0)
+  411 00400554 888f0054		lwl	$t7,81+3($a0)
+  411 00400558 988f0051		lwr	$t7,81($a0)
+  412 0040055c 14af001e		bne	$a1,$t7,4f
+  413                  		ulw	$t7,162($a0)
+  413 00400560 888f00a5		lwl	$t7,162+3($a0)
+  413 00400564 988f00a2		lwr	$t7,162($a0)
+  414 00400568 14af001b		bne	$a1,$t7,4f
+  415                   	
+  416 0040056c 8dcf0000		lw 	$t7,0($t6)               # get character at address  
+  417                  		usw 	$t7,0($a0)               # else store current character in the buff  
+  417 00400570 a88f0003		swl	$t7,0+3($a0)
+  417 00400574 b88f0000		swr	$t7,0($a0)
+  418 00400578 8dcf0004		lw	$t7,4($t6)
+  419                  		usw 	$t7,81($a0)               # else store current character in the buff 
+  419 0040057c a88f0054		swl	$t7,81+3($a0)
+  419 00400580 b88f0051		swr	$t7,81($a0)
+  420 00400584 8dcf0008		lw	$t7,8($t6)
+  421                  		usw 	$t7,162($a0)               # else store current character in the buff
+  421 00400588 a88f00a5		swl	$t7,162+3($a0)
+  421 0040058c b88f00a2		swr	$t7,162($a0)
+  422 00400590 20840005	2:	addi	$a0,$a0,5		#incrment pointer:a0
+  423 00400594 216bffff		addi	$t3,$t3,-1		#decremnt col counter:t3
+  424 00400598 214a0001		addi	$t2,$t2,1		#bitm
+  425 0040059c 1d60ffe6		bgtz	$t3,1b			#}while(t3<11)
+  426 004005a0 2084010d		addi	$a0,$a0,269	#move pointer back to left side of screen
+  427 004005a4 2108ffff		addi	$t0,$t0,-1	#rowcounter--
+  428 004005a8 2129ffff		addi	$t1,$t1,-1	#firstrows--
+  429 004005ac 1d200005		bgtz	$t1,3f		#if first two rows have been printed
+  430                  		la	$t6,al2			#load second alien
+  430 004005b0 3c0e1001		lui	$t6,0x1001
+  430 004005b4 35ce0018		ori	$t6,$t6,0x18
+  431 004005b8 17200002		bnez	$t9,3f			#if odd load alien2-2
+  432                  		la	$t6,al22		#alien2-2 to t6
+  432 004005bc 3c0e1001		lui	$t6,0x1001
+  432 004005c0 35ce0024		ori	$t6,$t6,0x24
+  433 004005c4 1d00ffdb	3:	bgtz	$t0,col		#}while(t0<4)
+  434 004005c8 8fbf0000		lw	$ra,0($sp)	#restore ra 
+  435 004005cc 8fb80004		lw	$t8,4($sp)
+  436 004005d0 23bd0008		addi	$sp,$sp,8	#resotre stack pointer
+  437 004005d4 03e00008		jr	$ra		
+  438                   	
+  439 004005d8 00006020	4:	add	$t4,$0,$0	#make alien dead and reset bullet
+  440 004005dc a14c0000		sb	$t4,($t2)	#go back to 1:
+  441 004005e0 0000a020		add	$s4,$0,$0
+  442                  		li	$a1,0x23232323
+  442 004005e4 3c052323		lui	$a1,0x2323
+  442 004005e8 34a52323		ori	$a1,$a1,0x2323
+  443                  		usw	$a1,($a0)
+  443 004005ec a8850003		swl	$a1,+3($a0)
+  443 004005f0 b8850000		swr	$a1,($a0)
+  444                  		usw	$a1,81($a0)
+  444 004005f4 a8850054		swl	$a1,81+3($a0)
+  444 004005f8 b8850051		swr	$a1,81($a0)
+  445                  		usw	$a1,162($a0)
+  445 004005fc a88500a5		swl	$a1,162+3($a0)
+  445 00400600 b88500a2		swr	$a1,162($a0)
+  446 00400604 0401ffcc		b	1b
+  447                   #end
+  448                   #begin clear screen	
+  449                   ############################
+  450                   #clear screen
+  451                   #clear the buff with spaces and newlines
+  452                   clearbuff:
+  453                  		la	$t0,buff		#t0:buffpointer
+  453 00400608 3c081001		lui	$t0,0x1001
+  453 0040060c 3508004c		ori	$t0,$t0,0x4C
+  454 00400610 200a0019		addi	$t2,$0,25		#t2:counter
+  455                  		li	$t3,0x20202020		#t3:space
+  455 00400614 3c0b2020		lui	$t3,0x2020
+  455 00400618 356b2020		ori	$t3,$t3,0x2020
+  456 0040061c 200c000a		addi	$t4,$0,'\n		#t4:new line
+  457 00400620 20090004	1:	addi	$t1,$0,4		#charCounter = 80
+  458                  	2:	usw	$t3,($t0)		#store space in char 
+  458 00400624 a90b0003		swl	$t3,+3($t0)
+  458 00400628 b90b0000		swr	$t3,($t0)
+  459                  		usw	$t3,4($t0)
+  459 0040062c a90b0007		swl	$t3,4+3($t0)
+  459 00400630 b90b0004		swr	$t3,4($t0)
+  460                  		usw	$t3,8($t0)
+  460 00400634 a90b000b		swl	$t3,8+3($t0)
+  460 00400638 b90b0008		swr	$t3,8($t0)
+  461                  		usw	$t3,12($t0)
+  461 0040063c a90b000f		swl	$t3,12+3($t0)
+  461 00400640 b90b000c		swr	$t3,12($t0)
+  462                  		usw	$t3,16($t0)
+  462 00400644 a90b0013		swl	$t3,16+3($t0)
+  462 00400648 b90b0010		swr	$t3,16($t0)
+  463 0040064c 21080014		addi	$t0,$t0,20		#incremnt buff pointer
+  464 00400650 2129ffff		addi	$t1,$t1,-1		#charCounter--
+  465 00400654 1d20fff3		bgtz	$t1,2b			#fill char while less than 80 chars
+  466 00400658 a10c0000		sb	$t4,($t0)
+  467 0040065c 21080001		addi	$t0,$t0,1
+  468 00400660 214affff		addi	$t2,$t2,-1		#counter--
+  469 00400664 1d40ffee		bgtz	$t2,1b			#branch back to 1 while less then 25 lines
+  470 00400668 a100ffff		sb	$0,-1($t0)
+  471 0040066c 03e00008		jr 	$ra
+  472                   #end
+  473                   
+                 	

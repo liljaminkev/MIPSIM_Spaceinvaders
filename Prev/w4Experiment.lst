@@ -1,0 +1,224 @@
+    1                  		.data   
+    2 10010000 3e6f6f3c	al1:	.word	0x3e6f6f3c
+    3 10010004 5d20205b		.word	0x5d20205b
+    4 10010008 305f5f30		.word	0x305f5f30
+    5 1001000c 3e4f4f3c	al12:	.word	0x3e4f4f3c
+    6 10010010 5d20205b		.word	0x5d20205b
+    7 10010014 20303020		.word	0x20303020
+    8 10010018 db2020db	al2:	.word	0xdb2020db
+    9 1001001c 20dbdb20		.word	0x20dbdb20
+   10 10010020 db2020db		.word	0xdb2020db
+   11 10010024 20202020	al22:	.word	0x20202020
+   12 10010028 20dbdb20		.word	0x20dbdb20
+   13 1001002c 20202020		.word	0x20202020
+   14 10010030         	buffer:	.space 	25*81       	# A 256 bytes buffer  
+   15 10010819         	bitmap:	.space 	1:11*5
+   16          00000006	timer.int = 6
+   17 a0000070         	timer:	.struct 0xa0000050
+   18 a0000050         	flags:	.byte	0
+   19 a0000051         	mask:	.byte	0
+   20 a0000052         		.half	0
+   21 a0000054         	t1:	.word	0
+   22 a0000058         	t2:	.word	0
+   23 a000005c         	t3:	.word	0
+   24 a0000060         	t4:	.word	0
+   25 a0000064         	t5:	.word	0
+   26 a0000068         	t6:	.word	0
+   27 a000006c         	t7:	.word	0
+   28                  		.code  
+   29                   main:  
+   30                  		la	$a0,timer.t1		# hardware address of timer1
+   30 00400000 3c04a000		lui	$a0,0xA000
+   30 00400004 34840054		ori	$a0,$a0,0x54
+   31 00400008 20050004		addi	$a1,$0,4		# 4 byte data
+   32 0040000c 200603e8		addi	$a2,$0,1000		# timer interval every five seconds
+   33 00400010 0000068c		syscall	$IO_write
+   34                   	
+   35                  		la	$s2,0			#movement tracker
+   35 00400014 3c120000		lui	$s2,0x00
+   35 00400018 36520000		ori	$s2,$s2,0x00
+   36                  		li	$s6,25
+   36 0040001c 34160019		ori	$s6,$0,0x19
+   37                   	
+   38                  	1:	li	$s7,26			#count down:
+   38 00400020 3417001a		ori	$s7,$0,0x1A
+   39 00400024 32d30001		andi 	$s3,$s6,1
+   40 00400028 16600001		bnez	$s3,2f
+   41 0040002c 2013ffff		addi	$s3,$0,-1
+   42 00400030 0c10001f	2:	jal 	movAi
+   43 00400034 02539020		add	$s2,$s2,$s3
+   44                   
+   45                  		la	$a0,timer.flags
+   45 00400038 3c04a000		lui	$a0,0xA000
+   45 0040003c 34840050		ori	$a0,$a0,0x50
+   46 00400040 20050001		addi	$a1,$0,1
+   47 00400044 0000064c	3:	syscall	$IO_read
+   48 00400048 30480002		andi	$t0,$v0,2
+   49 0040004c 1100fffd		beqz	$t0,3b
+   50 00400050 20840004		addi	$a0,$a0,4
+   51 00400054 0000064c		syscall	$IO_read
+   52                   
+   53 00400058 22f7ffff		addi	$s7,$s7,-1
+   54                  		la	$a0,buffer	#get a0 ready for printing
+   54 0040005c 3c041001		lui	$a0,0x1001
+   54 00400060 34840030		ori	$a0,$a0,0x30
+   55 00400064 0000010c		syscall	$print_string	#cout a0
+   56                   	
+   57                   	
+   58 00400068 1ee0fff1		bgtz	$s7,2b
+   59 0040006c 22520051		addi	$s2,$s2,81
+   60 00400070 22d6ffff		addi	$s6,$s6,-1
+   61 00400074 1ec0ffea		bgtz	$s6,1b
+   62 00400078 0000028c		syscall	$exit
+   63                   
+   64                   	
+   65                   	
+   66                   movAi:
+   67 0040007c 23bdfffc		addi	$sp,$sp,-4		
+   68 00400080 afbf0000		sw	$ra,0($sp)		
+   69                  	1:	la	$s1,buffer		#load buffer
+   69 00400084 3c111001		lui	$s1,0x1001
+   69 00400088 36310030		ori	$s1,$s1,0x30
+   70 0040008c 02328820		add	$s1,$s1,$s2		#incrment buffer by s2
+   71 00400090 32540001		andi	$s4,$s2,1		#find out if on an odd space
+   72 00400094 0c100029		jal	renai			#renai screen
+   73                   
+   74 00400098 8fbf0000		lw	$ra,0($sp)	
+   75 0040009c 23bd0004		addi	$sp,$sp,4
+   76 004000a0 03e00008		jr	$ra
+   77                   	
+   78                   
+   79                   	
+   80                   
+   81                   	
+   82                   
+   83                   ############################
+   84                   #renai screen
+   85                   #takes buffer pointer:s1, alien:t6
+   86                   #local t0:numRows t1:twofows for diffrent alien
+   87                   renai:
+   88 004000a4 23bdfff8		addi	$sp,$sp,-8
+   89 004000a8 afbf0004		sw	$ra,4($sp)
+   90 004000ac afb20000		sw	$s2,0($sp)
+   91 004000b0 0c10005a		jal	clearBuffer
+   92                   
+   93                  		li	$t0,4		#row counter
+   93 004000b4 34080004		ori	$t0,$0,0x04
+   94                  		li	$t1,2		#counter for first 2 rows of aliens 
+   94 004000b8 34090002		ori	$t1,$0,0x02
+   95                  		li	$t2,bitmap	#do
+   95 004000bc 3c0a1001		lui	$t2,0x1001
+   95 004000c0 354a0819		ori	$t2,$t2,0x819
+   96                  	row:	la	$t6,al1		#{alien 1 to t6
+   96 004000c4 3c0e1001		lui	$t6,0x1001
+   96 004000c8 35ce0000		ori	$t6,$t6,0x00
+   97 004000cc 16800002		bnez	$s4,col		#if even go to col
+   98                  		la	$t6,al12	#if odd change alien 1-2
+   98 004000d0 3c0e1001		lui	$t6,0x1001
+   98 004000d4 35ce000c		ori	$t6,$t6,0x0C
+   99                  	col:	li	$t3,11			#start dowhile counter
+   99 004000d8 340b000b		ori	$t3,$0,0x0B
+  100                   1:					#do
+  101 004000dc 814c0000		lb	$t4,0($t2)		#load dead/alive status
+  102 004000e0 1d800001		bgtz	$t4,2f
+  103 004000e4 0c10004c		jal 	printAlien		#{place alien
+  104 004000e8 22310005	2:	addi	$s1,$s1,5		#incrment pointer:s1
+  105 004000ec 216bffff		addi	$t3,$t3,-1		#decremnt col counter:t3
+  106 004000f0 214a0001		addi	$t2,$t2,1		#bitmap
+  107 004000f4 1d60fff9		bgtz	$t3,1b			#}while(t3<11)
+  108 004000f8 2231010d		addi	$s1,$s1,269	#move pointer back to left side of screen
+  109                   
+  110 004000fc 2108ffff		addi	$t0,$t0,-1	#rowcounter--
+  111 00400100 2129ffff		addi	$t1,$t1,-1	#firstrows--
+  112 00400104 1d200005		bgtz	$t1,3f		#if first two rows have been printed
+  113                  		la	$t6,al2			#load second alien
+  113 00400108 3c0e1001		lui	$t6,0x1001
+  113 0040010c 35ce0018		ori	$t6,$t6,0x18
+  114 00400110 16800002		bnez	$s4,3f			#if odd load alien2-2
+  115                  		la	$t6,al22		#alien2-2 to t6
+  115 00400114 3c0e1001		lui	$t6,0x1001
+  115 00400118 35ce0024		ori	$t6,$t6,0x24
+  116 0040011c 1d00ffee	3:	bgtz	$t0,col		#}while(t0<4)
+  117 00400120 8fb20000		lw	$s2,0($sp)	#take info off stack
+  118 00400124 8fbf0004		lw	$ra,4($sp)	#restore ra 
+  119 00400128 23bd0008		addi	$sp,$sp,8	#resotre stack pointer
+  120 0040012c 03e00008		jr	$ra		
+  121                   
+  122                   #begin Place alien
+  123                   ############################
+  124                   #Place alien 
+  125                   #takes s1:buffer
+  126                   printAlien:  
+  127 00400130 23bdfffc		addi	$sp,$sp,-4
+  128 00400134 afbf0000		sw	$ra,0($sp)
+  129 00400138 8dcf0000		lw 	$t7,0($t6)               # get character at address  
+  130                  		usw 	$t7,0($s1)               # else store current character in the buffer  
+  130 0040013c aa2f0003		swl	$t7,0+3($s1)
+  130 00400140 ba2f0000		swr	$t7,0($s1)
+  131 00400144 8dcf0004		lw	$t7,4($t6)
+  132                  		usw 	$t7,81($s1)               # else store current character in the buffer 
+  132 00400148 aa2f0054		swl	$t7,81+3($s1)
+  132 0040014c ba2f0051		swr	$t7,81($s1)
+  133 00400150 8dcf0008		lw	$t7,8($t6)
+  134                  		usw 	$t7,162($s1)               # else store current character in the buffer
+  134 00400154 aa2f00a5		swl	$t7,162+3($s1)
+  134 00400158 ba2f00a2		swr	$t7,162($s1)
+  135 0040015c 8fbf0000		lw	$ra,0($sp)	
+  136 00400160 23bd0004		addi	$sp,$sp,4
+  137 00400164 03e00008		jr	$ra
+  138                   
+  139                   #end
+  140                   #begin	clear screen	
+  141                   ############################
+  142                   #clear screen
+  143                   #clear the buffer with spaces and newlines
+  144                   clearBuffer:
+  145                  		la	$t0,buffer		#t0:bufferpointer
+  145 00400168 3c081001		lui	$t0,0x1001
+  145 0040016c 35080030		ori	$t0,$t0,0x30
+  146 00400170 200a0018		addi	$t2,$0,24		#t2:counter
+  147                  		li	$t3,0x20202020		#t3:space
+  147 00400174 3c0b2020		lui	$t3,0x2020
+  147 00400178 356b2020		ori	$t3,$t3,0x2020
+  148 0040017c 200c000a		addi	$t4,$0,'\n		#t4:new line
+  149                   1:
+  150 00400180 20090004		addi	$t1,$0,4		#charCounter = 80
+  151                   2:	
+  152                  		usw	$t3,($t0)		#store space in char 
+  152 00400184 a90b0003		swl	$t3,+3($t0)
+  152 00400188 b90b0000		swr	$t3,($t0)
+  153                  		usw	$t3,4($t0)
+  153 0040018c a90b0007		swl	$t3,4+3($t0)
+  153 00400190 b90b0004		swr	$t3,4($t0)
+  154                  		usw	$t3,8($t0)
+  154 00400194 a90b000b		swl	$t3,8+3($t0)
+  154 00400198 b90b0008		swr	$t3,8($t0)
+  155                  		usw	$t3,12($t0)
+  155 0040019c a90b000f		swl	$t3,12+3($t0)
+  155 004001a0 b90b000c		swr	$t3,12($t0)
+  156                  		usw	$t3,16($t0)
+  156 004001a4 a90b0013		swl	$t3,16+3($t0)
+  156 004001a8 b90b0010		swr	$t3,16($t0)
+  157 004001ac 21080014		addi	$t0,$t0,20		#incremnt buffer pointer
+  158 004001b0 2129ffff		addi	$t1,$t1,-1		#charCounter--
+  159 004001b4 1d20fff3		bgtz	$t1,2b			#fill char while less than 80 chars
+  160                   	
+  161 004001b8 a10c0000		sb	$t4,($t0)
+  162 004001bc 21080001		addi	$t0,$t0,1
+  163 004001c0 214affff		addi	$t2,$t2,-1		#counter--
+  164 004001c4 1d40ffee		bgtz	$t2,1b			#branch back to 1 while less then 25 lines
+  165 004001c8 03e00008		jr 	$ra
+  166                   #end
+  167                   #begin timer
+  168                   ############################
+  169                   #wait:
+  170                   #takes no input t0:counter
+  171                   wait:
+  172                  		li	$t0,4299990000
+  172 004001cc 3c08004c		lui	$t0,0x4C
+  172 004001d0 3508a3f0		ori	$t0,$t0,0xA3F0
+  173 004001d4 2108ffff	1:	addi	$t0,$t0,-1
+  174 004001d8 1d00fffe		bgtz	$t0,1b
+  175 004001dc 03e00008		jr	$ra
+  176                   #end timer
+                 	

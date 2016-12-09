@@ -1,0 +1,161 @@
+    1                  		.data  
+    2 10010000 3e6f6f3c	al1:	.word	0x3e6f6f3c
+    3 10010004 5d20205b		.word	0x5d20205b
+    4 10010008 305f5f30		.word	0x305f5f30
+    5 1001000c 3e4f4f3c	al12:	.word	0x3e4f4f3c
+    6 10010010 5d20205b		.word	0x5d20205b
+    7 10010014 20303020		.word	0x20303020
+    8 10010018 db2020db	al2:	.word	0xdb2020db
+    9 1001001c 20dbdb20		.word	0x20dbdb20
+   10 10010020 db2020db		.word	0xdb2020db
+   11 10010024 20202020	al21:	.word	0x20202020
+   12 10010028 20dbdb20		.word	0x20dbdb20
+   13 1001002c 20202020		.word	0x20202020
+   14 10010030         	buffer:	.space 	25*81       	# A 256 bytes buffer  
+   15                   	   
+   16                  		.code  
+   17                   main:  
+   18                  		la 	$s1,buffer  
+   18 00400000 3c111001		lui	$s1,0x1001
+   18 00400004 36310030		ori	$s1,$s1,0x30
+   19                  		la 	$t6,al1
+   19 00400008 3c0e1001		lui	$t6,0x1001
+   19 0040000c 35ce0000		ori	$t6,$t6,0x00
+   20                  		li	$s3,25		#
+   20 00400010 34130019		ori	$s3,$0,0x19
+   21                  		li	$s4,0		#counter for movement
+   21 00400014 34140000		ori	$s4,$0,0x00
+   22                  	1:	li	$s2,80		#decrement for 
+   22 00400018 34120050		ori	$s2,$0,0x50
+   23                   	
+   24 0040001c 0c100041	2:	jal	clearBuffer
+   25 00400020 0c100014		jal	printR
+   26 00400024 0c10005d		jal	wait
+   27 00400028 0c100041		jal	clearBuffer
+   28 0040002c 0c10005d		jal	wait
+   29                  		la 	$s1,buffer  
+   29 00400030 3c111001		lui	$s1,0x1001
+   29 00400034 36310030		ori	$s1,$s1,0x30
+   30 00400038 22310001		addi	$s1,$s1,1
+   31                  		la 	$t6,al12 
+   31 0040003c 3c0e1001		lui	$t6,0x1001
+   31 00400040 35ce000c		ori	$t6,$t6,0x0C
+   32 00400044 0c100014		jal	printR
+   33 00400048 0c10005d		jal	wait
+   34 0040004c 0000028c		syscall	$exit
+   35                   	
+   36                   #animate:
+   37                   	
+   38                   printR:
+   39 00400050 23bdfffc		addi	$sp,$sp,-4
+   40 00400054 afbf0000		sw	$ra,0($sp)
+   41                  		li	$s2,4
+   41 00400058 34120004		ori	$s2,$0,0x04
+   42                  		li	$s3,2
+   42 0040005c 34130002		ori	$s3,$0,0x02
+   43 00400060 0c100027	1:	jal 	printC
+   44 00400064 2231ffd8		addi	$s1,$s1,-40
+   45 00400068 223100f3		addi	$s1,$s1,243
+   46 0040006c 2252ffff		addi	$s2,$s2,-1
+   47 00400070 2273ffff		addi	$s3,$s3,-1
+   48 00400074 1e600002		bgtz	$s3,2f
+   49                  		la	$t6,al2
+   49 00400078 3c0e1001		lui	$t6,0x1001
+   49 0040007c 35ce0018		ori	$t6,$t6,0x18
+   50 00400080 1e40fff7	2:	bgtz	$s2,1b
+   51                  		la	$a0,buffer
+   51 00400084 3c041001		lui	$a0,0x1001
+   51 00400088 34840030		ori	$a0,$a0,0x30
+   52 0040008c 0000010c		syscall	$print_string
+   53 00400090 8fbf0000		lw	$ra,0($sp)	
+   54 00400094 23bd0004		addi	$sp,$sp,4
+   55 00400098 03e00008		jr	$ra
+   56                   printC:
+   57 0040009c 23bdfff8		addi	$sp,$sp,-8
+   58 004000a0 afbf0004		sw	$ra,4($sp)
+   59 004000a4 afb20000		sw	$s2,0($sp)
+   60                  		li	$s2,8
+   60 004000a8 34120008		ori	$s2,$0,0x08
+   61 004000ac 0c100033	1:	jal 	printAlien1
+   62 004000b0 22310005		addi	$s1,$s1,5
+   63 004000b4 2252ffff		addi	$s2,$s2,-1
+   64 004000b8 1e40fffc		bgtz	$s2,1b
+   65 004000bc 8fb20000		lw	$s2,0($sp)
+   66 004000c0 8fbf0004		lw	$ra,4($sp)	
+   67 004000c4 23bd0008		addi	$sp,$sp,8
+   68 004000c8 03e00008		jr	$ra
+   69                   printAlien1:  
+   70 004000cc 23bdfffc		addi	$sp,$sp,-4
+   71 004000d0 afbf0000		sw	$ra,0($sp)
+   72 004000d4 8dc80000		lw 	$t0,0($t6)               # get character at address  
+   73                  		usw 	$t0,0($s1)               # else store current character in the buffer  
+   73 004000d8 aa280003		swl	$t0,0+3($s1)
+   73 004000dc ba280000		swr	$t0,0($s1)
+   74 004000e0 8dc80004		lw	$t0,4($t6)
+   75                  		usw 	$t0,81($s1)               # else store current character in the buffer 
+   75 004000e4 aa280054		swl	$t0,81+3($s1)
+   75 004000e8 ba280051		swr	$t0,81($s1)
+   76 004000ec 8dc80008		lw	$t0,8($t6)
+   77                  		usw 	$t0,162($s1)               # else store current character in the buffer
+   77 004000f0 aa2800a5		swl	$t0,162+3($s1)
+   77 004000f4 ba2800a2		swr	$t0,162($s1)
+   78 004000f8 8fbf0000		lw	$ra,0($sp)	
+   79 004000fc 23bd0004		addi	$sp,$sp,4
+   80 00400100 03e00008		jr	$ra
+   81                   #clear the buffer with spaces
+   82                   #
+   83                   #
+   84                   clearBuffer:
+   85                  		la	$s1,buffer		#s1:bufferpointer
+   85 00400104 3c111001		lui	$s1,0x1001
+   85 00400108 36310030		ori	$s1,$s1,0x30
+   86 0040010c 200a0018		addi	$t2,$0,24		#t2:counter
+   87                  		li	$t3,0x20202020		#t3:space
+   87 00400110 3c0b2020		lui	$t3,0x2020
+   87 00400114 356b2020		ori	$t3,$t3,0x2020
+   88 00400118 200c000a		addi	$t4,$0,'\n		#t4:new line
+   89                   1:
+   90 0040011c 20090004		addi	$t1,$0,4		#charCounter = 80
+   91                   2:	
+   92                  		usw	$t3,($s1)		#store space in char 
+   92 00400120 aa2b0003		swl	$t3,+3($s1)
+   92 00400124 ba2b0000		swr	$t3,($s1)
+   93                  		usw	$t3,4($s1)
+   93 00400128 aa2b0007		swl	$t3,4+3($s1)
+   93 0040012c ba2b0004		swr	$t3,4($s1)
+   94                  		usw	$t3,8($s1)
+   94 00400130 aa2b000b		swl	$t3,8+3($s1)
+   94 00400134 ba2b0008		swr	$t3,8($s1)
+   95                  		usw	$t3,12($s1)
+   95 00400138 aa2b000f		swl	$t3,12+3($s1)
+   95 0040013c ba2b000c		swr	$t3,12($s1)
+   96                  		usw	$t3,16($s1)
+   96 00400140 aa2b0013		swl	$t3,16+3($s1)
+   96 00400144 ba2b0010		swr	$t3,16($s1)
+   97 00400148 22310014		addi	$s1,$s1,20		#incremnt buffer pointer
+   98 0040014c 2129ffff		addi	$t1,$t1,-1		#charCounter--
+   99 00400150 1d20fff3		bgtz	$t1,2b			#fill char while less than 80 chars
+  100                   	
+  101 00400154 a22c0000		sb	$t4,($s1)
+  102 00400158 22310001		addi	$s1,$s1,1
+  103 0040015c 214affff		addi	$t2,$t2,-1		#counter--
+  104 00400160 1d40ffee		bgtz	$t2,1b			#branch back to 1 while less then 25 lines
+  105                   	
+  106                  		la	$a0,buffer
+  106 00400164 3c041001		lui	$a0,0x1001
+  106 00400168 34840030		ori	$a0,$a0,0x30
+  107 0040016c 0000010c		syscall	$print_string
+  108 00400170 03e00008		jr 	$ra
+  109                   	
+  110                   	
+  111                   	
+  112                   #takes no input t0:counter
+  113                   wait:
+  114                  		li	$t0,4320000000
+  114 00400174 3c08017d		lui	$t0,0x17D
+  114 00400178 3508f800		ori	$t0,$t0,0xF800
+  115 0040017c 2108ffff	1:	addi	$t0,$t0,-1
+  116 00400180 1d00fffe		bgtz	$t0,1b
+  117 00400184 03e00008		jr	$ra
+  118                   
+                 	

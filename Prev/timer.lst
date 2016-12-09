@@ -1,0 +1,98 @@
+    1                  		.data
+    2                   	
+    3 10010000 656d6954	r1:	.asciiz "Timer 1\n"
+    4 10010009 656d6954	r2:	.asciiz	"Timer 2\n"
+    5 10010012 656d6954	r3:	.asciiz	"Timer 3\n"
+    6 1001001b 656d6954	r4:	.asciiz	"Timer 4\n"
+    7                   
+    8          00000006	timer.int = 6
+    9 a0000070         	timer:	.struct 0xa0000050
+   10 a0000050         	flags:	.byte	0
+   11 a0000051         	mask:	.byte	0
+   12 a0000052         		.half	0
+   13 a0000054         	t1:	.word	0
+   14 a0000058         	t2:	.word	0
+   15 a000005c         	t3:	.word	0
+   16 a0000060         	t4:	.word	0
+   17 a0000064         	t5:	.word	0
+   18 a0000068         	t6:	.word	0
+   19 a000006c         	t7:	.word	0
+   20                  		.code  
+   21                   	
+   22                   main:
+   23                   
+   24                  		la	$a0,timer.t1		# hardware address of timer1
+   24 00400000 3c04a000		lui	$a0,0xA000
+   24 00400004 34840054		ori	$a0,$a0,0x54
+   25 00400008 20050004		addi	$a1,$0,4		# 4 byte data
+   26 0040000c 200603e8		addi	$a2,$0,1000		# timer interval every five seconds
+   27 00400010 0000068c		syscall	$IO_write
+   28                   	
+   29                  		la	$a0,timer.t2		# hardware address of timer1
+   29 00400014 3c04a000		lui	$a0,0xA000
+   29 00400018 34840058		ori	$a0,$a0,0x58
+   30 0040001c 20050004		addi	$a1,$0,4		# 4 byte data
+   31 00400020 200607d0		addi	$a2,$0,2000		# timer interval every five seconds
+   32 00400024 0000068c		syscall	$IO_write
+   33                   	
+   34                  		la	$a0,timer.t3		# hardware address of timer1
+   34 00400028 3c04a000		lui	$a0,0xA000
+   34 0040002c 3484005c		ori	$a0,$a0,0x5C
+   35 00400030 20050004		addi	$a1,$0,4		# 4 byte data
+   36 00400034 20060bb8		addi	$a2,$0,3000		# timer interval every five seconds
+   37 00400038 0000068c		syscall	$IO_write
+   38                   	
+   39                  		la	$a0,timer.t4		# hardware address of timer1
+   39 0040003c 3c04a000		lui	$a0,0xA000
+   39 00400040 34840060		ori	$a0,$a0,0x60
+   40 00400044 20050004		addi	$a1,$0,4		# 4 byte data
+   41 00400048 20060fa0		addi	$a2,$0,4000		# timer interval every five seconds
+   42 0040004c 0000068c		syscall	$IO_write
+   43                   	
+   44                   	
+   45                  	1:	la	$a0,timer.flags
+   45 00400050 3c04a000		lui	$a0,0xA000
+   45 00400054 34840050		ori	$a0,$a0,0x50
+   46 00400058 0000064c		syscall	$IO_read
+   47 0040005c 30480002		andi	$t0,$v0,0x02
+   48 00400060 11000006		beqz	$t0,2f
+   49                   	
+   50                  		la	$a0,timer.t1
+   50 00400064 3c04a000		lui	$a0,0xA000
+   50 00400068 34840054		ori	$a0,$a0,0x54
+   51 0040006c 0000064c		syscall	$IO_read
+   52                  		la	$a0,r1
+   52 00400070 3c041001		lui	$a0,0x1001
+   52 00400074 34840000		ori	$a0,$a0,0x00
+   53 00400078 0000010c		syscall	$print_string
+   54 0040007c 30480004	2:	andi	$t0,$v0,0x04
+   55 00400080 11000006		beqz	$t0,3f
+   56                   	
+   57                  		la	$a0,timer.t2
+   57 00400084 3c04a000		lui	$a0,0xA000
+   57 00400088 34840058		ori	$a0,$a0,0x58
+   58 0040008c 0000064c		syscall	$IO_read
+   59                  		la	$a0,r2
+   59 00400090 3c041001		lui	$a0,0x1001
+   59 00400094 34840009		ori	$a0,$a0,0x09
+   60 00400098 0000010c		syscall	$print_string
+   61                   3:#	andi	$t0,$v0,0b000100
+   62                   #	beqz	$t0,4f
+   63                   #	addi	$a0,$a0,20
+   64                   #	syscall	$IO_read
+   65                   #	la	$a0,r3
+   66                   #	syscall	$print_string
+   67                   #4:	andi	$t0,$v0,0b001000
+   68                   #	beqz	$t0,5f
+   69                   #	addi	$a0,$a0,20
+   70                   #	syscall	$IO_read
+   71                   #	la	$a0,r4
+   72                   #	syscall	$print_string
+   73 0040009c 08100014	5:	j	1b
+   74                   	
+   75 004000a0 0000028c		syscall	$exit
+   76                   	
+   77                   	
+   78                   	
+   79                   	
+                 	

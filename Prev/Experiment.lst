@@ -1,0 +1,151 @@
+    1                  		.data  
+    2 10010000 30303030	al1:	.asciiz	"0000"
+    3 10010005 20303020		.asciiz	" 00 "
+    4 1001000a 30303030		.asciiz	"0000"
+    5 1001000f 30303030	al12:	.asciiz	"0000"
+    6 10010014 30202030		.asciiz	"0  0"
+    7 10010019 30303030		.asciiz	"0000"
+    8 1001001e 78787878	al2:	.asciiz	"xxxx"
+    9 10010023 78202078		.asciiz	"x  x"
+   10 10010028 78787878		.asciiz	"xxxx"
+   11 1001002d 78787878	al22:	.asciiz	"xxxx"
+   12 10010032 20787820		.asciiz	" xx "
+   13 10010037 78787878		.asciiz	"xxxx"
+   14                   	
+   15 1001003c         	buffer:	.space 	25*81       	# A 256 bytes buffer  
+   16                   	   
+   17                  		.code  
+   18                   main:  
+   19                  		la 	$a1,buffer  
+   19 00400000 3c051001		lui	$a1,0x1001
+   19 00400004 34a5003c		ori	$a1,$a1,0x3C
+   20                  		la 	$a2,al1
+   20 00400008 3c061001		lui	$a2,0x1001
+   20 0040000c 34c60000		ori	$a2,$a2,0x00
+   21                  		la 	$a3,al12  
+   21 00400010 3c071001		lui	$a3,0x1001
+   21 00400014 34e7000f		ori	$a3,$a3,0x0F
+   22                   #	li	$a4,25
+   23                   	
+   24                   #1:	li	$a5,80
+   25                   	
+   26 00400018 0c100017	2:	jal	clearBuffer
+   27 0040001c 0c100032		jal	wait
+   28 00400020 0c10000a		jal	printAlien1
+   29                   #	addi	$t1,$t1,-1
+   30                   #	jal	wait
+   31                   #	jal	clearBuffer
+   32                   #	jal	printAlien12
+   33                   #	jal	wait
+   34                   #	addi	$t1,$t1,-1
+   35                   #	addi	$t2,$t2,-1
+   36                   	
+   37                   #	addi	$a1,$a1,-1
+   38                   #	addi	$a1,$a1,81
+   39                   #	li	$t1,80
+   40                   	
+   41                   #3:	jal	clearBuffer
+   42                   #	jal	printAlien1
+   43                   #	addi	$t1,$t1,-1
+   44                   #	addi	$a1,$a1,-1
+   45                   #	jal	clearBuffer
+   46                   #	jal	wait
+   47                   #	jal	printAlien12
+   48                   #	jal	wait
+   49                   #	addi	$t1,$t1,-1
+   50                   #	addi	$a1,$a1,-1
+   51                   #	bgtz	$t1,3b
+   52                   #	addi	$t2,$t2,-1
+   53                   	
+   54                   	
+   55                   #	addi	$a1,$a1,82
+   56                   #	bgtz	$t2,1b
+   57                   	
+   58 00400024 0000028c		syscall	$exit
+   59                   	
+   60                   	
+   61                   
+   62                   	
+   63                   printAlien1:  
+   64 00400028 8cc80000		lw 	$t0,($a2)               # get character at address  
+   65                  		usw 	$t0,($a1)               # Store first part
+   65 0040002c a8a80003		swl	$t0,+3($a1)
+   65 00400030 b8a80000		swr	$t0,($a1)
+   66 00400034 8cc80004		lw	$t0,4($a2)
+   67                  		usw	$t0,81($a1)
+   67 00400038 a8a80054		swl	$t0,81+3($a1)
+   67 0040003c b8a80051		swr	$t0,81($a1)
+   68 00400040 8cc80004		lw	$t0,4($a2)
+   69                  		usw	$t0,162($a1)
+   69 00400044 a8a800a5		swl	$t0,162+3($a1)
+   69 00400048 b8a800a2		swr	$t0,162($a1)
+   70                  		la	$a0,buffer
+   70 0040004c 3c041001		lui	$a0,0x1001
+   70 00400050 3484003c		ori	$a0,$a0,0x3C
+   71 00400054 0000010c		syscall	$print_string
+   72 00400058 03e00008		jr	$ra
+   73                   
+   74                   #printAlien12:  
+   75                   #	lw 	$t0,($a3)               # get character at address  
+   76                   #	usw 	$t0,($a1)               # else store current character in the buffer  
+   77                   #	la	$a0,buffer
+   78                   #	syscall	$print_string
+   79                   #1:	jr	$ra 
+   80                   
+   81                   #clear the buffer with spaces
+   82                   #
+   83                   #
+   84                   clearBuffer:
+   85                  		la	$t0,buffer		#s4:bufferpointer
+   85 0040005c 3c081001		lui	$t0,0x1001
+   85 00400060 3508003c		ori	$t0,$t0,0x3C
+   86 00400064 20090018		addi	$t1,$0,24		#t1:counter
+   87                  		li	$t3,0x20202020		#t3:space
+   87 00400068 3c0b2020		lui	$t3,0x2020
+   87 0040006c 356b2020		ori	$t3,$t3,0x2020
+   88 00400070 200c000a		addi	$t4,$0,'\n		#t4:new line
+   89                   1:
+   90 00400074 200a0004		addi	$t2,$0,4		#t2:4 counter
+   91                   2:	
+   92                  		usw	$t3,($t0)		#store space in word 
+   92 00400078 a90b0003		swl	$t3,+3($t0)
+   92 0040007c b90b0000		swr	$t3,($t0)
+   93                  		usw	$t3,4($t0)
+   93 00400080 a90b0007		swl	$t3,4+3($t0)
+   93 00400084 b90b0004		swr	$t3,4($t0)
+   94                  		usw	$t3,8($t0)
+   94 00400088 a90b000b		swl	$t3,8+3($t0)
+   94 0040008c b90b0008		swr	$t3,8($t0)
+   95                  		usw	$t3,12($t0)
+   95 00400090 a90b000f		swl	$t3,12+3($t0)
+   95 00400094 b90b000c		swr	$t3,12($t0)
+   96                  		usw	$t3,16($t0)
+   96 00400098 a90b0013		swl	$t3,16+3($t0)
+   96 0040009c b90b0010		swr	$t3,16($t0)
+   97 004000a0 21080014		addi	$t0,$t0,20		#incremnt buffer pointer
+   98 004000a4 214affff		addi	$t2,$t2,-1		#t2--
+   99 004000a8 1d40fff3		bgtz	$t2,2b			#fill char while less than 80 
+  100                   	
+  101 004000ac a10c0000		sb	$t4,($t0)
+  102 004000b0 21080001		addi	$t0,$t0,1
+  103 004000b4 2129ffff		addi	$t1,$t1,-1		#counter--
+  104 004000b8 1d20ffee		bgtz	$t1,1b			#branch back to 1 while less then 25 lines
+  105                   	
+  106 004000bc 01002021		mov	$a0,$t0
+  107 004000c0 0000010c		syscall	$print_string
+  108 004000c4 03e00008		jr 	$ra
+  109                   
+  110                   	
+  111                   	
+  112                   
+  113                   
+  114                   #takes no input t0:counter
+  115                   wait:
+  116                  		li	$t0,4320000000
+  116 004000c8 3c08017d		lui	$t0,0x17D
+  116 004000cc 3508f800		ori	$t0,$t0,0xF800
+  117 004000d0 2108ffff	1:	addi	$t0,$t0,-1
+  118 004000d4 1d00fffe		bgtz	$t0,1b
+  119 004000d8 03e00008		jr	$ra
+  120                   	
+                 	
